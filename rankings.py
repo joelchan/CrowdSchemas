@@ -12,6 +12,7 @@ from gensim import corpora, models, similarities
 from operator import itemgetter
 import itertools as it
 import numpy as np
+import pandas as pd
 import random, os
 
 def cosine(doc1, doc2, doc_topic_weights):
@@ -43,7 +44,7 @@ def random_pairs(names,n=50):
 		output.append(pairs[i])
 	return output
 
-def pair_sims(texts,dim=len(texts)):
+def pair_sims(texts,names,dim=len(texts)):
 	"""
 	from list of texts, return list of pairs with pairwise cosines for each pair
 	"""
@@ -61,6 +62,7 @@ def pair_sims(texts,dim=len(texts)):
 	lsi = models.LsiModel(corpus_tfidf, id2word=dictionary, num_topics=len(names)) #create the space
 
 	# output the matrix V so we can use it to get pairwise cosines
+	# https://github.com/piskvorky/gensim/wiki/Recipes-&-FAQ#q3-how-do-you-calculate-the-matrix-v-in-lsi-space
 	# vMatrix = 
 
 	# get all pairwise cosines into a list
@@ -68,13 +70,14 @@ def pair_sims(texts,dim=len(texts)):
 	pairsims = []
 	for pair in pairs:
 		pairsim = cosine(pair[0],pair[1],vMatrix)
-		pairsims.append((pair,pairsim))
+		pairsims.append((pair[0],pair[1],pairsim))
 
 	# spit out the pair-cosine list in reverse sorted order 
 	# so we can just grab the top N
-	return sorted(pairsims,key=itemgetter(1),reverse=True)
+	# http://stackoverflow.com/questions/10695139/sort-a-list-of-tuples-by-2nd-item-integer-value
+	return sorted(pairsims,key=itemgetter(2),reverse=True)
 
-def naive_lsa_pairs(textdir,names,n=50):
+def naive_lsa_pairs(textdir,names):
 	"""
 	return top n most similar pairs of documents (ranked by lsa cosine)
 	doesn't frequency screen for now
@@ -88,5 +91,22 @@ def naive_lsa_pairs(textdir,names,n=50):
     # get sim ranked pairs
     pairSims = pair_sims(texts)
 
-    # return top N
-    return pairSims[:n]
+    # print to file with a csv
+    with open("naive_lsa_pairs.csv",'w') as csvfile:
+    	resultwriter = csv.writer(csvfile, delimiter=' ',quotechar='|'):
+    	resultwriter.writerow(["doc1","doc2","cosine"])
+    	for pairSim in pairSims:
+    		resultwriter.writerow([pairSim[0],pairSim[1],pairSim[2]])
+    csvfile.close()
+
+def naive_pos_lsa_pairs(structureDir,surfaceDir,structureNames,surfaceNames):
+	"""
+	return top n 
+	"""
+	
+	# basically do naive_lsa_pairs up to pairSims separately
+	# for structure and surface
+	# and then somehow merge the pairs - perhaps use pandas?
+	
+	# print the data frame to file with a csv
+    pairSims.to_csv("naive_pos_lsa_pairs.csv")
