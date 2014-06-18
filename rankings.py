@@ -81,14 +81,14 @@ def pair_sims(texts,names,dim):
 	pairs = generate_pairs(indices)
 	pairsims = []
 	counter = 0
-	for pair in pairs[:100]:
+	for pair in pairs:
 		pairsims.append([names[pair[0]], 
 						 names[pair[1]], 
 						 cosine(pair[0],pair[1],vMatrix)])
 		counter += 1
-		sys.stdout.write("\tProcessed %i of %i pairs...\r" %(counter, len(pairs[:100])))
+		sys.stdout.write("\tProcessed %i of %i pairs...\r" %(counter, len(pairs)))
         sys.stdout.flush()
-	sys.stdout.write("\tProcessed %i of %i pairs...\n" %(counter, len(pairs[:100])))
+	sys.stdout.write("\tProcessed %i of %i pairs...\n" %(counter, len(pairs)))
 
 	# spit out the pair-cosine list in reverse sorted order 
 	# so we can just grab the top N
@@ -136,6 +136,7 @@ def naive_pos_lsa_pairs(structureDir,surfaceDir):
 
 	# merge them and print them out
 	mergedPairs = pd.merge(surfacePairs,structurePairs,on="pair")
+	mergedPairs['d'] = mergedPairs.structureCosine - mergedPairs.surfaceCosine
 	mergedPairs.to_csv("naive_pos_lsa_pairs.csv")
 
 def main():
