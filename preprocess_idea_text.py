@@ -78,7 +78,7 @@ def split_slashes_and_periods(words):
 
 def main(srcdir= "IdeaRawText/", verbsdir="IdeaProcessedText_Verbs/", nounsdir="IdeaProcessedText_Nouns/", alldir="IdeaProcessedText_All/"):
 	
-	stopWords = read_data("englishstopwords-jc")
+	stopWords = read_data("englishstopwords-jc.txt")
 
 	# for text in folder
 	for f in os.listdir(srcdir):
