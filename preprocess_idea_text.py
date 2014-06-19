@@ -76,7 +76,10 @@ def split_slashes_and_periods(words):
 			newwords.append(word)
 	return newwords
 
-def main(srcdir= "IdeaRawText/", verbsdir="IdeaProcessedText_Verbs/", nounsdir="IdeaProcessedText_Nouns/", alldir="IdeaProcessedText_All/"):
+def main(srcdir= "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/IdeaRawText/", 
+		verbsdir="/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/IdeaProcessedText_Verbs/", 
+		nounsdir="/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/IdeaProcessedText_Nouns/", 
+		alldir="/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/IdeaProcessedText_All/"):
 	
 	stopWords = read_data("englishstopwords-jc.txt")
 
