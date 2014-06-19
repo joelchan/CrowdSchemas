@@ -55,7 +55,7 @@ def random_pairs(names,n=50):
 		output.append(pairs[i])
 	return output
 
-def pair_sims(texts,names,dim):
+def pair_sims(texts,names,dim,rawTexts):
 	"""
 	from list of texts, return list of pairs with pairwise cosines for each pair
 	"""
@@ -82,9 +82,16 @@ def pair_sims(texts,names,dim):
 	pairsims = []
 	counter = 0
 	for pair in pairs:
-		pairsims.append([names[pair[0]], 
-						 names[pair[1]], 
-						 cosine(pair[0],pair[1],vMatrix)])
+		name1 = names[pair[0]]
+		name2 = names[pair[1]]
+		text1 = rawTexts[name1]
+		text2 = rawTexts[name2]
+		sim = cosine(pair[0],pair[1],vMatrix)
+		pairsims.append([name1, 
+						 name2, 
+						 text1,
+						 text2,
+						 sim])
 		counter += 1
 		sys.stdout.write("\tProcessed %i of %i pairs...\r" %(counter, len(pairs)))
         sys.stdout.flush()
@@ -95,27 +102,27 @@ def pair_sims(texts,names,dim):
 	# http://stackoverflow.com/questions/10695139/sort-a-list-of-tuples-by-2nd-item-integer-value
 	return sorted(pairsims,key=itemgetter(2),reverse=True)
 
-def naive_lsa_pairs(textdir):
+def naive_lsa_pairs(textDir,rawTexts):
 	"""
 	return top n most similar pairs of documents (ranked by lsa cosine)
 	doesn't frequency screen for now
 	"""
 	
 	# extract text and names
-	texts, names = extract_text(textdir)
+	texts, names = extract_text(textDir)
 
 	# get sim ranked pairs
-	pairsims = pair_sims(texts,names,300)
+	pairsims = pair_sims(texts,names,300,rawTexts)
+	pairsimsDF = pd.DataFrame(pairsims,columns=["doc1","doc2","doc1text","doc2text","cosine"])
+	#make sure it's sorted!
+	pairsimsDF = pairsimsDF.sort("cosine",ascending=False)
+	toppairsimsDF = pairsimsDF[:50]
 
 	# print to file with a csv
-	with open("naive_lsa_pairs.csv",'w') as csvfile:
-		resultwriter = csv.writer(csvfile, delimiter=',',quotechar='|')
-		resultwriter.writerow(["doc1","doc2","cosine"])
-		for pairSim in pairsims:
-			resultwriter.writerow([pairSim[0],pairSim[1],pairSim[2]])
-	csvfile.close()
+	pairsimsDF.to_csv("naive_lsa_pairs.csv")
+	toppairsimsDF.to_csv("naive_lsa_pairs_top50.csv")
 
-def naive_pos_lsa_pairs(structureDir,surfaceDir):
+def naive_pos_lsa_pairs(structureDir,surfaceDir,rawTexts):
 	"""
 	return top n 
 	"""
@@ -123,28 +130,39 @@ def naive_pos_lsa_pairs(structureDir,surfaceDir):
 	# structure
 	structureTexts, structureNames = extract_text(structureDir)
 	print "Processing structure pairings..."
-	pairsims = pair_sims(structureTexts,structureNames,300)
-	structurePairs = pd.DataFrame(pairsims, columns=["doc1","doc2","structureCosine"])
+	pairsims = pair_sims(structureTexts,structureNames,300,rawTexts)
+	structurePairs = pd.DataFrame(pairsims, columns=["doc1","doc2","doc1text","doc2text","structureCosine"])
 	structurePairs['pair'] = structurePairs.doc1 + "_" + structurePairs.doc2
 
 	# surface
 	surfaceTexts, surfaceNames = extract_text(surfaceDir)
 	print "Processing surface pairings..."
-	pairsims = pair_sims(surfaceTexts,surfaceNames,300)
-	surfacePairs = pd.DataFrame(pairsims, columns=["doc1","doc2","surfaceCosine"])
+	pairsims = pair_sims(surfaceTexts,surfaceNames,300,rawTexts)
+	surfacePairs = pd.DataFrame(pairsims, columns=["doc1","doc2","doc1text","doc2text","surfaceCosine"])
 	surfacePairs['pair'] = surfacePairs.doc1 + "_" + surfacePairs.doc2
 
 	# merge them and print them out
 	mergedPairs = pd.merge(surfacePairs,structurePairs,on="pair")
 	mergedPairs['d'] = mergedPairs.structureCosine - mergedPairs.surfaceCosine
+	mergedPairs = mergedPairs.sort('d',ascending=False)
+	topMergedPairs = mergedPairs[:50]
 	mergedPairs.to_csv("naive_pos_lsa_pairs.csv")
+	topMergedPairs.to_csv("naive_pos_lsa_pairs_top50.csv")
 
 def main():
+	rawDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/IdeaRawText/"
 	allDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/IdeaProcessedText_All/"
 	structureDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/IdeaProcessedText_Verbs/"
 	surfaceDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/IdeaProcessedText_Nouns/"
-	# naive_lsa_pairs(textdir)
-	naive_pos_lsa_pairs(structureDir,surfaceDir)
+	rawTexts = {}
+	for f in os.listdir(rawDir):
+		if ".DS" not in f:
+			fname = f.replace(".txt","")
+			fpath = rawDir + f
+			ftext = open(fpath).read()
+			rawTexts[fname] = ftext
+	naive_lsa_pairs(allDir,rawTexts)
+	# naive_pos_lsa_pairs(structureDir,surfaceDir,rawTexts)
 
 if __name__ == '__main__':
 	main()
