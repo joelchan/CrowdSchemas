@@ -39,12 +39,17 @@ def find_paths(words1,words2):
 	expandedWords1 = expand_words(words1)
 	expandedWords2 = expand_words(words2)
 
-	for word1 in expandedWords1:
-		for word2 in expandedWords2:
+	combos = [c for c in it.product(expandedWords1,expandedWords2)]
+	for combo in combos:
+		word1 = combo[0][0]
+		weight1 = combo[0][1]
+		word2 = combo[1][0]
+		weight2 = combo[1][1]
+		if word1.pos == word2.pos: # only try and find shortest paths between same POS
 			# find shortest path between word, weight by height in hypernym hierarchy
-			sim = word1[0].path_similarity(word2[0])
+			sim = word1.path_similarity(word2)
 			#weight = 1.0/np.mean([word1[1],word2[1]])
-			weight = 1.0/word1[1]
+			weight = 1.0/np.mean([weight1,weight2])
 			if sim is not None:
 				paths.append(sim*weight)
 			else:
@@ -90,18 +95,26 @@ def expand_words(words):
 
 	return sorted(list(expandedWords),key=lambda x: x[1])
 
+def sum_top(sims,n):
+	"""
+	sims is list of similarities
+	"""
+	topSims = sorted(sims,reverse=True)[:n]
+	return sum(topSims)
+
 def main():
 	srcdir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_surface/"
 	documents = []
 	docNames = []
 	for f in os.listdir(srcdir):
 		fpath = srcdir + f
-		words = []
-		for w in read_data(fpath):
-			d = w.split(',')
-			words.append((d[0],d[1]))
-		documents.append(words)
-		docNames.append(f)
+		if ".DS_Store" not in f and os.path.isfile(fpath):
+			words = []
+			for w in read_data(fpath):
+				d = w.split(',')
+				words.append((d[0].lower(),d[1]))
+			documents.append(words)
+			docNames.append(f)
 
 	results = []
 	combos = [x for x in it.combinations([i for i in xrange(len(documents))],2)]
@@ -111,14 +124,8 @@ def main():
 		docName1 = docNames[combo[0]]
 		docName2 = docNames[combo[1]]
 		print "Processing %s vs %s..." %(docName1,docName2)
-		path1 = find_paths(doc1,doc2)
-		path2 = find_paths(doc2,doc1) # do the reverse too, because they aren't symmetric
-		# sim1 = sum(path1)
-		# sim2 = sum(path2)
-		sim1 = np.mean(path1)
-		sim2 = np.mean(path2)
-		# print sim1, sim2
-		sim = np.mean([sim1,sim2])
+		sim = np.mean(find_paths(doc1,doc2))
+		# sim = sum_top(find_paths(doc1,doc2),10) # sum of top 10 path similarities
 		results.append([docName1,docName2,sim,doc1,doc2])
 	# for i in xrange(len(documents)):
 	# 	print "Processing %s..." %docNames[i]
