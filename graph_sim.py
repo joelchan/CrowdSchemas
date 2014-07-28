@@ -19,6 +19,16 @@ class rawWord:
     def __str__(self):
         return self.label
 
+class pathSim:
+	def __init__(self, pair, path, scoreRaw, scoreWeighted):
+		self.pair = str(pair)
+		self.path = str(path)
+		self.scoreRaw = scoreRaw
+		self.pathLength = int(1/scoreRaw)
+		self.scoreWeighted = scoreWeighted
+	def __str__(self):
+		return "Path is FROM %s\nRaw path length: %i\nWeighted path similarity: %.2f" %(self.path, self.pathLength, self.scoreWeighted)
+
 def read_data(filename):
 	"""
 	Read in data from a file and return a list with each element being one line from the file.
@@ -48,32 +58,37 @@ def get_wordnet_pos(treebank_tag):
 	else:
 		return ''
 
-def find_paths(words1,words2):
-	paths = []
-
-	# first expand with synonyms
-	expandedWords1 = expand_words(words1)
-	expandedWords2 = expand_words(words2)
-
-	combos = [c for c in it.product(expandedWords1,expandedWords2)]
-	for combo in combos:
-		word1 = combo[0][0]
-		weight1 = combo[0][1]
-		word2 = combo[1][0]
-		weight2 = combo[1][1]
-		if word1.pos == word2.pos: # only try and find shortest paths between same POS
-			# find shortest path between word, weight by height in hypernym hierarchy
-			sim = word1.path_similarity(word2)
-			#weight = 1.0/np.mean([word1[1],word2[1]])
-			weight = 1.0/np.mean([weight1,weight2])
-			if sim is not None:
-				paths.append(sim*weight)
-			else:
-				paths.append(0)
-	if len(paths):
-		return paths
-	else:
-		return []
+def find_paths(words1,words2,name1,name2):
+    """
+    words1 and words2 are lists of rawWords
+    """
+    paths = []
+    
+    # first expand with synonyms
+    expandedWords1 = expand_words(words1)
+    expandedWords2 = expand_words(words2)
+    
+    combos = [c for c in it.product(expandedWords1,expandedWords2)]
+    for combo in combos:
+        word1 = combo[0]
+        word2 = combo[1]
+        if word1.synset.pos == word2.synset.pos: # only try and find shortest paths between same POS
+            # find shortest path between word, weight by height in hypernym hierarchy
+            simRaw = word1.synset.path_similarity(word2.synset)
+            levelWeight = 1.0/np.mean([word1.level, word2.level])
+            weight = np.mean([word1.weight, word2.weight])
+            if simRaw is not None:
+                simWeighted = simRaw*levelWeight*weight
+                path = "%s TO %s" %(word1.synset.name, word2.synset.name)
+                pair = "%s VS %s" %(name1, name2)
+                # paths.append(((word1.synset.name,word2.synset.name),sim*weight*levelWeight))
+                paths.append(pathSim(pair,path,simRaw,simWeighted))
+            #else:
+            #    paths.append(0)
+    if len(paths):
+        return sorted(paths, key=lambda x: x.scoreWeighted, reverse=True)
+    else:
+        return []
 
 def expand_words(words):
 	
@@ -87,8 +102,8 @@ def expand_words(words):
 	# get derivationally related forms for "properties"
 	derivations = set()
 	for synonym in synonyms:
-		if synonym[0].pos == 's':
-			for lemma in synonym[0].lemmas:
+		if synonym.synset.pos == 's':
+			for lemma in synonym.synset.lemmas:
 				for form in lemma.derivationally_related_forms():
 					derivations.add(enhancedWord(form.synset,1,synonym.weight))
 	synonyms.update(derivations)
@@ -104,7 +119,7 @@ def expand_words(words):
 
 		# get all hypernyms, put in nextStack
 		for s in currentStack:
-			for hypernym in s[0].hypernyms():
+			for hypernym in s.synset.hypernyms():
 				nextStack.add(enhancedWord(hypernym,level,s.weight))
 				expandedWords.add(enhancedWord(hypernym,level,s.weight))
 
@@ -114,14 +129,15 @@ def expand_words(words):
 	return sorted(list(expandedWords),key=lambda x: x.level)
 
 def sum_top(sims,n):
-	"""
-	sims is list of similarities
-	"""
-	topSims = sorted(sims,reverse=True)[:n]
-	return sum(topSims)
+    """
+    sims is list of similarities
+    """
+    top = sorted(sims,key=lambda x: x.scoreWeighted, reverse=True)[:n]
+    topSims = [t.scoreWeighted for t in top]
+    return sum(topSims)
 
 def main():
-	srcdir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_structure/"
+	srcdir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_structure_subset/"
 	documents = []
 	docNames = []
 	for f in os.listdir(srcdir):
@@ -130,11 +146,14 @@ def main():
 			words = []
 			for w in read_data(fpath):
 				d = w.split(',')
-				words.append((d[0].lower(),d[1]))
+				# words.append((d[0].lower(),d[1]))
+				print d
+				words.append(rawWord(d[0].lower(),d[1],float(d[2])))
 			documents.append(words)
 			docNames.append(f)
 
 	results = []
+	pathsToWrite = []
 	combos = [x for x in it.combinations([i for i in xrange(len(documents))],2)]
 	for combo in combos:
 		doc1 = documents[combo[0]]
@@ -142,24 +161,25 @@ def main():
 		docName1 = docNames[combo[0]]
 		docName2 = docNames[combo[1]]
 		print "Processing %s vs %s..." %(docName1,docName2)
-		# sim = np.mean(find_paths(doc1,doc2))
-		sim = sum_top(find_paths(doc1,doc2),10) # sum of top 10 path similarities
-		results.append([docName1,docName2,sim,doc1,doc2])
-	# for i in xrange(len(documents)):
-	# 	print "Processing %s..." %docNames[i]
-	# 	for j in xrange(len(documents)):
-	# 		if docNames[i] != docNames[j]: #skip self-comparisons
-	# 			doc1 = documents[i]
-	# 			doc2 = documents[j]
-	# 			#sim = np.mean(find_paths(doc1,doc2))
-	# 			sim = sum(find_paths(doc1,doc2))
-	# 			results.append([docNames[i],docNames[j],sim,doc1,doc2])
+		comboPath = find_paths(doc1,doc2,docName1,docName2)
+		doc1Words = [d.label for d in doc1]
+		doc2Words = [d.label for d in doc2]
+		sim = sum_top(comboPath,10) # sum of top 10 path similarities
+		results.append([docName1,docName2,sim,doc1Words,doc2Words])
+		for combo in sorted(comboPath,key=lambda x: x.scoreWeighted, reverse=True)[:10]:
+			pathsToWrite.append([combo.pair,combo.path,combo.scoreRaw,combo.pathLength,combo.scoreWeighted])
 
-	with open("/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/smallResults_structure_topSum.csv",'w') as csvfile:
+	with open("/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/smallResults_structureSubSet_topSum.csv",'w') as csvfile:
 		csvwriter = csv.writer(csvfile)
 		csvwriter.writerow(['doc1','doc2','sim','words1','words2'])
 		for result in results:
 			csvwriter.writerow(result)
+
+	with open("/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/smallResults_structureSubSet_topSum_PATHS.csv",'w') as csvfile:
+		csvwriter = csv.writer(csvfile)
+		csvwriter.writerow(['pair','path','rawSim','pathLength','weightedSim'])
+		for path in pathsToWrite:
+			csvwriter.writerow(path)
 
 if __name__ == '__main__':
 	main()
