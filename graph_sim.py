@@ -3,6 +3,8 @@ from copy import deepcopy
 from operator import mul
 import numpy as np
 import itertools as it
+import pandas as pd
+from pandas import ExcelWriter
 import os, csv
 
 class enhancedWord:
@@ -79,6 +81,7 @@ def find_paths(words1,words2,docName1,docName2):
     for wordCombo in wordCombos:
         pair = "%s to %s" %(wordCombo[0].label, wordCombo[1].label)
         pathCombos = [c for c in it.product(wordCombo[0].expansions, wordCombo[1].expansions)]
+        # maxSim = max_sim(pathCombos)
         champion = pathSim(docPair,pair,"null",0.1,0.0)
         for pathCombo in pathCombos:
             word1 = pathCombo[0]
@@ -99,6 +102,17 @@ def find_paths(words1,words2,docName1,docName2):
         return sorted(paths, key=lambda x: x.scoreWeighted, reverse=True)
     else:
             return []
+
+def max_sim(combos):
+    possibleLinks = []
+    for c in combos:
+        c1 = c[0]
+        c2 = c[1]
+        if c1.synset.pos == c2.synset.pos:
+            levelWeight = 1.0/np.mean([word1.level, word2.level])
+            weight = np.mean([word1.weight, word2.weight])
+
+
 
 def expand_words(words):
     for item in words:
@@ -143,9 +157,9 @@ def sum_top(sims,n):
     topSims = [t.scoreWeighted for t in top]
     return sum(topSims)
 
-def main(n):
-    settings = read_data("settings.txt")
-    srcdir = settings[0]
+def process_sim(srcdir,n,simType):
+    # settings = read_data(settingsFile)
+    # srcdir = settings[0]
     documents = []
     docNames = []
     for f in os.listdir(srcdir):
@@ -155,7 +169,7 @@ def main(n):
             for w in read_data(fpath):
                 d = w.split(',')
                 # words.append((d[0].lower(),d[1]))
-                print d
+                # print d
                 words.append(rawWord(d[0].lower(),d[1],float(d[2])))
             documents.append(words)
             docNames.append(f)
@@ -178,17 +192,54 @@ def main(n):
         for combo in sorted(comboPath,key=lambda x: x.scoreWeighted, reverse=True)[:n]:
             pathsToWrite.append([combo.docPair,combo.wordPair,combo.path,combo.scoreRaw,combo.pathLength,combo.scoreWeighted])
 
-    with open(settings[1],'w') as csvfile:
-        csvwriter = csv.writer(csvfile)
-        csvwriter.writerow(['doc1','doc2','docPair','sim','words1','words2'])
-        for result in results:
-            csvwriter.writerow(result)
+    simsColNames = ['doc1','doc2','docPair','sim','words1','words2']
+    for i in xrange(3,len(simsColNames)):
+        simsColNames[i] = simType + "_" + simsColNames[i]
+    pathsColNames = ['docPair','wordPair','path','rawSim','pathLength','weightedSim']
+    for i in xrange(2,len(pathsColNames)):
+        pathsColNames[i] = simType + "_" + pathsColNames[i]
+    simsDF = pd.DataFrame(results,columns=simsColNames)
+    pathsDF = pd.DataFrame(pathsToWrite,columns=pathsColNames)
 
-    with open(settings[2],'w') as csvfile:
-        csvwriter = csv.writer(csvfile)
-        csvwriter.writerow(['docPair','wordPair','path','rawSim','pathLength','weightedSim'])
-        for path in pathsToWrite:
-            csvwriter.writerow(path)
+    return simsDF, pathsDF
+    # with open(settings[1],'w') as csvfile:
+    #     csvwriter = csv.writer(csvfile)
+    #     csvwriter.writerow(['doc1','doc2','docPair','sim','words1','words2'])
+    #     for result in results:
+    #         csvwriter.writerow(result)
+
+    # with open(settings[2],'w') as csvfile:
+    #     csvwriter = csv.writer(csvfile)
+    #     csvwriter.writerow(['docPair','wordPair','path','rawSim','pathLength','weightedSim'])
+    #     for path in pathsToWrite:
+    #         csvwriter.writerow(path)
+
+def main(n):
+    
+    # settings
+    structureSrcDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_structure_enhanced/"
+    surfaceSrcDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_surface/"
+    simOutFileName = "smallResults_WT_en_topSum_%i.csv" %n
+    pathOutFileName = "smallResults_WT_en_topSum_%i_PATH.csv" %n
+
+    # get data
+    structureSimDF, structurePathsDF = process_sim(structureSrcDir,n,"structure")
+    surfaceSimDF, surfacePathsDF = process_sim(surfaceSrcDir,n,"surface")
+    
+    # merge the data
+    masterSimsDF = pd.DataFrame.merge(structureSimDF,surfaceSimDF,how="left")
+    masterPathsDF = pd.DataFrame.merge(structurePathsDF,surfacePathsDF,how="left")
+    masterSimsDF['structure_sim_z'] = (masterSimsDF.structure_sim-np.mean(masterSimsDF.structure_sim))/np.std(masterSimsDF.structure_sim)
+    masterSimsDF['surface_sim_z'] = (masterSimsDF.surface_sim-np.mean(masterSimsDF.surface_sim))/np.std(masterSimsDF.surface_sim)
+
+    # print out
+    masterSimsDF.to_csv(simOutFileName)
+    masterPathsDF.to_csv(pathOutFileName)
+    # writer = ExcelWriter(outFileName)
+    # masterSimsDF.to_excel(writer,sheet_name="simData",index=False)
+    # masterPathsDF.to_excel(writer,sheet_name="pathData")
+    # writer.save()
+
 
 if __name__ == '__main__':
     main(5)
