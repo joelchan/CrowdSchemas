@@ -25,12 +25,15 @@ class rawWord:
         return self.label
 
 class pathSim:
-    def __init__(self, docPair, wordPair, path, scoreRaw, scoreWeighted):
+    def __init__(self, docPair, wordPair, path, scoreRaw, level1, level2, weight, scoreWeighted):
         self.docPair = str(docPair)
         self.wordPair = str(wordPair)
         self.path = str(path)
         self.scoreRaw = scoreRaw
         self.pathLength = int(1/scoreRaw)
+        self.level1 = level1
+        self.level2 = level2
+        self.weight = weight
         self.scoreWeighted = scoreWeighted
     def __str__(self):
         return "Wordpair: %s\nPath is FROM %s\nRaw path length: %i\nWeighted path similarity: %.2f" %(self.pair, self.path, self.pathLength, self.scoreWeighted)
@@ -66,7 +69,7 @@ def get_wordnet_pos(treebank_tag):
 
 def find_paths(words1,words2,docName1,docName2):
     """
-    words1 and words2 are lists of rawWords
+    words1 and words2 are lists of enhancedWords
     """
     
     docPair = "%s TO %s" %(docName1, docName2)
@@ -74,27 +77,29 @@ def find_paths(words1,words2,docName1,docName2):
     paths = []
     
     # first expand with synonyms
-    words1 = expand_words(words1)
-    words2 = expand_words(words2)
+    # words1 = expand_words(words1)
+    # words2 = expand_words(words2)
     
     wordCombos = [c for c in it.product(words1,words2)]
     for wordCombo in wordCombos:
         pair = "%s to %s" %(wordCombo[0].label, wordCombo[1].label)
         pathCombos = [c for c in it.product(wordCombo[0].expansions, wordCombo[1].expansions)]
         # maxSim = max_sim(pathCombos)
-        champion = pathSim(docPair,pair,"null",0.1,0.0)
+        champion = pathSim(docPair,pair,"null",0.1,1,1,0.0,0.0)
         for pathCombo in pathCombos:
             word1 = pathCombo[0]
             word2 = pathCombo[1]
             if word1.synset.pos == word2.synset.pos: # only try and find shortest paths between same POS
                 # find shortest path between word, weight by height in hypernym hierarchy
                 simRaw = word1.synset.path_similarity(word2.synset)
-                levelWeight = 1.0/np.mean([word1.level, word2.level])
-                weight = np.mean([word1.weight, word2.weight])
+                # levelWeight = 1.0/np.mean([word1.level, word2.level])
+                levelWeight = 1.0/(word1.level*word2.level)
+                # weight = np.mean([word1.weight, word2.weight])
+                weight = word1.weight*word2.weight
                 if simRaw is not None:    
                     simWeighted = simRaw*levelWeight*weight
                     path = "%s TO %s" %(word1.synset.name, word2.synset.name)
-                    pathsim = pathSim(docPair,pair,path,simRaw,simWeighted)
+                    pathsim = pathSim(docPair,pair,path,simRaw,word1.level,word2.level,weight,simWeighted)
                     if pathsim.scoreWeighted > champion.scoreWeighted:
                         champion = deepcopy(pathsim)
         paths.append(champion)
@@ -102,17 +107,6 @@ def find_paths(words1,words2,docName1,docName2):
         return sorted(paths, key=lambda x: x.scoreWeighted, reverse=True)
     else:
             return []
-
-def max_sim(combos):
-    possibleLinks = []
-    for c in combos:
-        c1 = c[0]
-        c2 = c[1]
-        if c1.synset.pos == c2.synset.pos:
-            levelWeight = 1.0/np.mean([word1.level, word2.level])
-            weight = np.mean([word1.weight, word2.weight])
-
-
 
 def expand_words(words):
     for item in words:
@@ -157,10 +151,24 @@ def sum_top(sims,n):
     topSims = [t.scoreWeighted for t in top]
     return sum(topSims)
 
-def process_sim(srcdir,n,simType):
+def grade_sim(sims,n):
+    """
+    sims is list of similarities
+    returns normalized similarity, i.e., ratio of "earned" scores to "maximum" possible score
+    based on number of "actual" paths
+    """
+    simsEarned = [s.scoreWeighted for s in sims if s.path is not "null"]
+    simsPossible = [s.weight for s in sims if s.path is not "null"]
+    if len(simsEarned):
+        return sum(simsEarned)/sum(simsPossible)
+    else:
+        return 0
+
+def process_sim(srcdir,n,simType,norm):
     # settings = read_data(settingsFile)
     # srcdir = settings[0]
     documents = []
+    documentsExpanded = []
     docNames = []
     for f in os.listdir(srcdir):
         fpath = srcdir + f
@@ -172,6 +180,7 @@ def process_sim(srcdir,n,simType):
                 # print d
                 words.append(rawWord(d[0].lower(),d[1],float(d[2])))
             documents.append(words)
+            documentsExpanded.append(expand_words(words))
             docNames.append(f)
 
     results = []
@@ -180,26 +189,33 @@ def process_sim(srcdir,n,simType):
     for combo in combos:
         doc1 = documents[combo[0]]
         doc2 = documents[combo[1]]
+        doc1expanded = documentsExpanded[combo[0]]
+        doc2expanded = documentsExpanded[combo[1]]
         docName1 = docNames[combo[0]]
         docName2 = docNames[combo[1]]
         p = "%s TO %s" %(docName1, docName2)
         print "Processing %s vs %s..." %(docName1,docName2)
-        comboPath = find_paths(doc1,doc2,docName1,docName2)
+        comboPath = find_paths(doc1expanded,doc2expanded,docName1,docName2)
         doc1Words = [d.label for d in doc1]
         doc2Words = [d.label for d in doc2]
-        sim = sum_top(comboPath,n) # sum of top n path similarities
+        if norm:
+            sim = grade_sim(comboPath,n)
+        else:
+            sim = sum_top(comboPath,n) # sum of top n path similarities
         results.append([docName1,docName2,p,sim,doc1Words,doc2Words])
         for combo in sorted(comboPath,key=lambda x: x.scoreWeighted, reverse=True)[:n]:
-            pathsToWrite.append([combo.docPair,combo.wordPair,combo.path,combo.scoreRaw,combo.pathLength,combo.scoreWeighted])
+            pathsToWrite.append([combo.docPair,combo.wordPair,combo.path,combo.scoreRaw,combo.pathLength,combo.level1,combo.level2,combo.weight,combo.scoreWeighted])
 
     simsColNames = ['doc1','doc2','docPair','sim','words1','words2']
     for i in xrange(3,len(simsColNames)):
         simsColNames[i] = simType + "_" + simsColNames[i]
-    pathsColNames = ['docPair','wordPair','path','rawSim','pathLength','weightedSim']
-    for i in xrange(2,len(pathsColNames)):
-        pathsColNames[i] = simType + "_" + pathsColNames[i]
+    pathsColNames = ['docPair','wordPair','path','rawSim','pathLength','level1','level2','weight','weightedSim']
+    # for i in xrange(2,len(pathsColNames)):
+    #     pathsColNames[i] = simType + "_" + pathsColNames[i]
     simsDF = pd.DataFrame(results,columns=simsColNames)
     pathsDF = pd.DataFrame(pathsToWrite,columns=pathsColNames)
+    pathsDF['type'] = simType
+    pathsDF['pathID'] = pathsDF.docPair + "_" + pathsDF.wordPair
 
     return simsDF, pathsDF
     # with open(settings[1],'w') as csvfile:
@@ -214,27 +230,28 @@ def process_sim(srcdir,n,simType):
     #     for path in pathsToWrite:
     #         csvwriter.writerow(path)
 
-def main(n):
+def main(n,norm):
     
     # settings
     structureSrcDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_structure_enhanced/"
-    surfaceSrcDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_surface/"
-    simOutFileName = "smallResults_WT_en_topSum_%i.csv" %n
-    pathOutFileName = "smallResults_WT_en_topSum_%i_PATH.csv" %n
+    surfaceSrcDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_surface_enhanced/"
+    simOutFileName = "smallResults_enhanced_WTpr_gradeSim_%i.csv" %n
+    pathOutFileName = "smallResults_enhanced_WTpr_gradeSim_%i_PATH.csv" %n
 
     # get data
-    structureSimDF, structurePathsDF = process_sim(structureSrcDir,n,"structure")
-    surfaceSimDF, surfacePathsDF = process_sim(surfaceSrcDir,n,"surface")
+    structureSimDF, structurePathsDF = process_sim(structureSrcDir,n,"structure",norm)
+    surfaceSimDF, surfacePathsDF = process_sim(surfaceSrcDir,n,"surface",norm)
     
     # merge the data
     masterSimsDF = pd.DataFrame.merge(structureSimDF,surfaceSimDF,how="left")
-    masterPathsDF = pd.DataFrame.merge(structurePathsDF,surfacePathsDF,how="left")
+    masterPathsDF = pd.DataFrame.merge(structurePathsDF,surfacePathsDF,how="outer")
     masterSimsDF['structure_sim_z'] = (masterSimsDF.structure_sim-np.mean(masterSimsDF.structure_sim))/np.std(masterSimsDF.structure_sim)
     masterSimsDF['surface_sim_z'] = (masterSimsDF.surface_sim-np.mean(masterSimsDF.surface_sim))/np.std(masterSimsDF.surface_sim)
 
     # print out
     masterSimsDF.to_csv(simOutFileName)
     masterPathsDF.to_csv(pathOutFileName)
+    # surfacePathsDF.to_csv("surfaceSimDF.csv")
     # writer = ExcelWriter(outFileName)
     # masterSimsDF.to_excel(writer,sheet_name="simData",index=False)
     # masterPathsDF.to_excel(writer,sheet_name="pathData")
@@ -242,6 +259,6 @@ def main(n):
 
 
 if __name__ == '__main__':
-    main(5)
+    main(n=5,norm=True)
     # call main with two separate settings, make main return pandas dataframes (one for paths and one for sims)
     # merge and print out the pandas dataframes
