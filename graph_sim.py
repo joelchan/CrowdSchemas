@@ -5,7 +5,7 @@ import numpy as np
 import itertools as it
 import pandas as pd
 from pandas import ExcelWriter
-import os, csv
+import os, csv, json
 
 class enhancedWord:
     def __init__(self, synset, level, weight):
@@ -217,7 +217,12 @@ def process_sim(srcdir,n,simType,norm):
     pathsDF['type'] = simType
     pathsDF['pathID'] = pathsDF.docPair + "_" + pathsDF.wordPair
 
-    return simsDF, pathsDF
+    # masterDF = simsDF.copy(deep=True)
+    # masterDF['pathData'] = {}
+    # for docPairName, docPairData in pathsDF.groupby(['docPair']):
+    #     masterDF[masterDF['docPair'] == docPairName]['pathData'] = docPairData.ix[:,1:].to_dict()
+
+    return simsDF, pathsDF, #masterDF
     # with open(settings[1],'w') as csvfile:
     #     csvwriter = csv.writer(csvfile)
     #     csvwriter.writerow(['doc1','doc2','docPair','sim','words1','words2'])
@@ -230,13 +235,22 @@ def process_sim(srcdir,n,simType,norm):
     #     for path in pathsToWrite:
     #         csvwriter.writerow(path)
 
+def get_matches(df,surfaceThreshold=0.0,structureThreshold=1.0):
+    return df[(df['surface_sim_z'] < surfaceThreshold) & (df['structure_sim_z'] > structureThreshold)].docPair
+
 def main(n,norm):
     
+    runtype = "enhanced_WTpr_topSum_%i" %n
     # settings
-    structureSrcDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_structure_enhanced/"
-    surfaceSrcDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_surface_enhanced/"
-    simOutFileName = "smallResults_enhanced_WTpr_gradeSim_%i.csv" %n
-    pathOutFileName = "smallResults_enhanced_WTpr_gradeSim_%i_PATH.csv" %n
+    structureSrcDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_structure_subset/"
+    surfaceSrcDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_surface_subset/"
+    resultsDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/results/%s/" %runtype
+    if not os.path.exists(resultsDir):
+        os.makedirs(resultsDir)
+    simOutFileName = "%ssmallResults_%s.csv" %(resultsDir,runtype)
+    pathOutFileName = "%ssmallResults_%s_PATH.csv" %(resultsDir,runtype)
+    jsonFileName = "%ssmallResults_%s.json" %(resultsDir,runtype)
+    matchFileName = "%ssmallMatches_%s.json" %(resultsDir,runtype)
 
     # get data
     structureSimDF, structurePathsDF = process_sim(structureSrcDir,n,"structure",norm)
@@ -245,12 +259,50 @@ def main(n,norm):
     # merge the data
     masterSimsDF = pd.DataFrame.merge(structureSimDF,surfaceSimDF,how="left")
     masterPathsDF = pd.DataFrame.merge(structurePathsDF,surfacePathsDF,how="outer")
+    # masterMasterDF = pd.DataFrame.merge(structureMaster,surfaceMaster,how="left")
     masterSimsDF['structure_sim_z'] = (masterSimsDF.structure_sim-np.mean(masterSimsDF.structure_sim))/np.std(masterSimsDF.structure_sim)
     masterSimsDF['surface_sim_z'] = (masterSimsDF.surface_sim-np.mean(masterSimsDF.surface_sim))/np.std(masterSimsDF.surface_sim)
 
     # print out
     masterSimsDF.to_csv(simOutFileName)
     masterPathsDF.to_csv(pathOutFileName)
+
+    masterSimsDFCopy = masterSimsDF.set_index(['docPair'])
+    masterSimsDFCopy.to_json(jsonFileName,orient="index")
+    
+    masterMasterDict = json.loads(open(jsonFileName).read())
+    for docPairName, docPairData in masterPathsDF.groupby(['docPair']):
+        structurePaths = []
+        surfacePaths = []
+        for index, row in docPairData.iterrows():
+            # print row
+            if row['path'] == "null":
+                break
+            rowDict = {"wordPair":row['wordPair'],
+                       "path":row['path'],
+                       "pathLength":row['pathLength'],
+                       "weight":row['weight'],
+                       "weightedSim":row['weightedSim']}
+            if row['type'] == "structure":
+                structurePaths.append(rowDict)
+            else:
+                surfacePaths.append(rowDict)
+        masterMasterDict[docPairName]['structurePathData'] = structurePaths
+        masterMasterDict[docPairName]['surfacePathData'] = surfacePaths
+
+        # masterMasterDict[docPairName]['pathData'] = docPairData.ix[:,1:].to_dict()
+    # masterMasterJSON = json.dumps(masterMasterDict)
+    open(jsonFileName,'w').write(json.dumps(masterMasterDict,indent=4))
+
+    matches = get_matches(masterSimsDF)
+    matchesDict = {}
+    for match in matches:
+        matchesDict[match] = masterMasterDict[match]
+    open(matchFileName,'w').write(json.dumps(matchesDict,indent=4))
+
+    # pathsColNames = ['docPair','wordPair','path','rawSim','pathLength','level1','level2','weight','weightedSim']
+    
+    # masterMasterDF.to_json(jsonFileName)
     # surfacePathsDF.to_csv("surfaceSimDF.csv")
     # writer = ExcelWriter(outFileName)
     # masterSimsDF.to_excel(writer,sheet_name="simData",index=False)
@@ -259,6 +311,6 @@ def main(n,norm):
 
 
 if __name__ == '__main__':
-    main(n=5,norm=True)
+    main(n=5,norm=False)
     # call main with two separate settings, make main return pandas dataframes (one for paths and one for sims)
     # merge and print out the pandas dataframes
