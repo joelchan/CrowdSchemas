@@ -5,7 +5,7 @@ import numpy as np
 import itertools as it
 import pandas as pd
 from pandas import ExcelWriter
-import os, csv, json
+import os, csv, json, shutil
 
 class enhancedWord:
     def __init__(self, synset, level, weight):
@@ -72,7 +72,9 @@ def find_paths(words1,words2,docName1,docName2):
     words1 and words2 are lists of enhancedWords
     """
     
-    docPair = "%s TO %s" %(docName1, docName2)
+    useWeights = False
+
+    docPair = "%s-TO-%s" %(docName1.replace(".txt",""), docName2.replace(".txt",""))
 
     paths = []
     
@@ -95,7 +97,10 @@ def find_paths(words1,words2,docName1,docName2):
                 # levelWeight = 1.0/np.mean([word1.level, word2.level])
                 levelWeight = 1.0/(word1.level*word2.level)
                 # weight = np.mean([word1.weight, word2.weight])
-                weight = word1.weight*word2.weight
+                if useWeights:
+                    weight = word1.weight*word2.weight
+                else:
+                    weight = 1
                 if simRaw is not None:    
                     simWeighted = simRaw*levelWeight*weight
                     path = "%s TO %s" %(word1.synset.name, word2.synset.name)
@@ -164,24 +169,34 @@ def grade_sim(sims,n):
     else:
         return 0
 
-def process_sim(srcdir,n,simType,norm):
+def process_sim(df,n,simType,norm,wordType="structure"):
     # settings = read_data(settingsFile)
     # srcdir = settings[0]
     documents = []
     documentsExpanded = []
     docNames = []
-    for f in os.listdir(srcdir):
-        fpath = srcdir + f
-        if ".DS_Store" not in f and os.path.isfile(fpath):
-            words = []
-            for w in read_data(fpath):
-                d = w.split(',')
-                # words.append((d[0].lower(),d[1]))
-                # print d
-                words.append(rawWord(d[0].lower(),d[1],float(d[2])))
-            documents.append(words)
-            documentsExpanded.append(expand_words(words))
-            docNames.append(f)
+    for docName, docData in df.groupby(['doc']):
+        docNames.append(docName)
+        keywords = []
+        for index, row in docData.iterrows():
+            if row['type'] == wordType:
+                print row['doc'],row['POS']
+                keywords.append(rawWord(row['keyword'],row['POS'],float(row['weight'])))
+        documents.append(keywords)
+        documentsExpanded.append(expand_words(keywords))
+
+    # for f in os.listdir(srcdir):
+    #     fpath = srcdir + f
+    #     if ".DS_Store" not in f and os.path.isfile(fpath):
+    #         words = []
+    #         for w in read_data(fpath):
+    #             d = w.split(',')
+    #             # words.append((d[0].lower(),d[1]))
+    #             # print d
+    #             words.append(rawWord(d[0].lower(),d[1],float(d[2])))
+    #         documents.append(words)
+    #         documentsExpanded.append(expand_words(words))
+    #         docNames.append(f)
 
     results = []
     pathsToWrite = []
@@ -193,7 +208,7 @@ def process_sim(srcdir,n,simType,norm):
         doc2expanded = documentsExpanded[combo[1]]
         docName1 = docNames[combo[0]]
         docName2 = docNames[combo[1]]
-        p = "%s TO %s" %(docName1, docName2)
+        p = "%s-TO-%s" %(docName1.replace(".txt",""), docName2.replace(".txt",""))
         print "Processing %s vs %s..." %(docName1,docName2)
         comboPath = find_paths(doc1expanded,doc2expanded,docName1,docName2)
         doc1Words = [d.label for d in doc1]
@@ -238,23 +253,33 @@ def process_sim(srcdir,n,simType,norm):
 def get_matches(df,surfaceThreshold=0.0,structureThreshold=1.0):
     return df[(df['surface_sim_z'] < surfaceThreshold) & (df['structure_sim_z'] > structureThreshold)].docPair
 
+def get_fulltext(textdir):
+    fullText = {}
+    for text in os.listdir(textdir):
+        textpath = os.path.join(textdir,text)
+        if os.path.isfile(textpath):
+            fullText[text.replace(".txt","")] = open(textpath).read()
+    return fullText
+
 def main(n,norm):
     
-    runtype = "enhanced_WTpr_topSum_%i" %n
+    runtype = "enhanced_WTpr_noWordLevelWT_topSum_%i" %n
     # settings
-    structureSrcDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_structure_subset/"
-    surfaceSrcDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_surface_subset/"
+    # structureSrcDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_structure_enhanced/"
+    # surfaceSrcDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_surface_enhanced/"
+    keyWordsData = pd.read_csv("/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_keywords_enhanced.csv")
+    fullTextDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_raw/"
     resultsDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/results/%s/" %runtype
     if not os.path.exists(resultsDir):
         os.makedirs(resultsDir)
     simOutFileName = "%ssmallResults_%s.csv" %(resultsDir,runtype)
     pathOutFileName = "%ssmallResults_%s_PATH.csv" %(resultsDir,runtype)
-    jsonFileName = "%ssmallResults_%s.json" %(resultsDir,runtype)
-    matchFileName = "%ssmallMatches_%s.json" %(resultsDir,runtype)
+    jsonFileName = "%srawResults.json" %resultsDir
+    matchFileName = "%smatches.json" %resultsDir
 
     # get data
-    structureSimDF, structurePathsDF = process_sim(structureSrcDir,n,"structure",norm)
-    surfaceSimDF, surfacePathsDF = process_sim(surfaceSrcDir,n,"surface",norm)
+    structureSimDF, structurePathsDF = process_sim(keyWordsData,n,"structure",norm,wordType="structure")
+    surfaceSimDF, surfacePathsDF = process_sim(keyWordsData,n,"surface",norm,wordType="surface")
     
     # merge the data
     masterSimsDF = pd.DataFrame.merge(structureSimDF,surfaceSimDF,how="left")
@@ -270,7 +295,9 @@ def main(n,norm):
     masterSimsDFCopy = masterSimsDF.set_index(['docPair'])
     masterSimsDFCopy.to_json(jsonFileName,orient="index")
     
+    # merge into json
     masterMasterDict = json.loads(open(jsonFileName).read())
+    # print masterSimsDF.docPair
     for docPairName, docPairData in masterPathsDF.groupby(['docPair']):
         structurePaths = []
         surfacePaths = []
@@ -290,15 +317,28 @@ def main(n,norm):
         masterMasterDict[docPairName]['structurePathData'] = structurePaths
         masterMasterDict[docPairName]['surfacePathData'] = surfacePaths
 
-        # masterMasterDict[docPairName]['pathData'] = docPairData.ix[:,1:].to_dict()
-    # masterMasterJSON = json.dumps(masterMasterDict)
+    # merge in full text
+    fullTexts = get_fulltext(fullTextDir)
+    for key, value in masterMasterDict.iteritems():
+        # print masterMasterDict[key]['doc1']
+        masterMasterDict[key]['doc1text'] = fullTexts[masterMasterDict[key]['doc1']]
+        masterMasterDict[key]['doc2text'] = fullTexts[masterMasterDict[key]['doc2']]
+
     open(jsonFileName,'w').write(json.dumps(masterMasterDict,indent=4))
 
+    # screen and print out matches
     matches = get_matches(masterSimsDF)
     matchesDict = {}
     for match in matches:
         matchesDict[match] = masterMasterDict[match]
     open(matchFileName,'w').write(json.dumps(matchesDict,indent=4))
+
+    srcdir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/results/src/"
+    for f in os.listdir(srcdir):
+        srcf = os.path.join(srcdir,f)
+        if ".DS_Store" not in f and os.path.isfile(srcf):
+            destf = resultsDir + f
+            shutil.copy2(srcf,destf)
 
     # pathsColNames = ['docPair','wordPair','path','rawSim','pathLength','level1','level2','weight','weightedSim']
     
