@@ -76,18 +76,15 @@ def find_paths(words1,words2,docName1,docName2):
 
     docPair = "%s-TO-%s" %(docName1.replace(".txt",""), docName2.replace(".txt",""))
 
+    # for each word
     paths = []
-    
-    # first expand with synonyms
-    # words1 = expand_words(words1)
-    # words2 = expand_words(words2)
-    
     wordCombos = [c for c in it.product(words1,words2)]
     for wordCombo in wordCombos:
         pair = "%s to %s" %(wordCombo[0].label, wordCombo[1].label)
         pathCombos = [c for c in it.product(wordCombo[0].expansions, wordCombo[1].expansions)]
-        # maxSim = max_sim(pathCombos)
-        champion = pathSim(docPair,pair,"null",0.1,1,1,0.0,0.0)
+        
+        # for each synset combo
+        # champion = pathSim(docPair,pair,"null",0.1,1,1,0.0,0.0)
         for pathCombo in pathCombos:
             word1 = pathCombo[0]
             word2 = pathCombo[1]
@@ -105,9 +102,10 @@ def find_paths(words1,words2,docName1,docName2):
                     simWeighted = simRaw*levelWeight*weight
                     path = "%s TO %s" %(word1.synset.name, word2.synset.name)
                     pathsim = pathSim(docPair,pair,path,simRaw,word1.level,word2.level,weight,simWeighted)
-                    if pathsim.scoreWeighted > champion.scoreWeighted:
-                        champion = deepcopy(pathsim)
-        paths.append(champion)
+                    paths.append(pathsim)
+                    # if pathsim.scoreWeighted > champion.scoreWeighted:
+                        # champion = deepcopy(pathsim)
+        # paths.append(champion)
     if len(paths):
         return sorted(paths, key=lambda x: x.scoreWeighted, reverse=True)
     else:
@@ -169,9 +167,7 @@ def grade_sim(sims,n):
     else:
         return 0
 
-def process_sim(df,n,simType,norm,wordType="structure"):
-    # settings = read_data(settingsFile)
-    # srcdir = settings[0]
+def extract_raw_data(df,simType):
     documents = []
     documentsExpanded = []
     docNames = []
@@ -179,28 +175,15 @@ def process_sim(df,n,simType,norm,wordType="structure"):
         docNames.append(docName)
         keywords = []
         for index, row in docData.iterrows():
-            if row['type'] == wordType:
-                print row['doc'],row['POS']
+            if row['type'] == simType:
                 keywords.append(rawWord(row['keyword'],row['POS'],float(row['weight'])))
         documents.append(keywords)
         documentsExpanded.append(expand_words(keywords))
+    return documents, documentsExpanded, docNames
 
-    # for f in os.listdir(srcdir):
-    #     fpath = srcdir + f
-    #     if ".DS_Store" not in f and os.path.isfile(fpath):
-    #         words = []
-    #         for w in read_data(fpath):
-    #             d = w.split(',')
-    #             # words.append((d[0].lower(),d[1]))
-    #             # print d
-    #             words.append(rawWord(d[0].lower(),d[1],float(d[2])))
-    #         documents.append(words)
-    #         documentsExpanded.append(expand_words(words))
-    #         docNames.append(f)
-
+def process_combos(combos,documents,documentsExpanded,docNames,norm,n):
     results = []
     pathsToWrite = []
-    combos = [x for x in it.combinations([i for i in xrange(len(documents))],2)]
     for combo in combos:
         doc1 = documents[combo[0]]
         doc2 = documents[combo[1]]
@@ -220,38 +203,40 @@ def process_sim(df,n,simType,norm,wordType="structure"):
         results.append([docName1,docName2,p,sim,doc1Words,doc2Words])
         for combo in sorted(comboPath,key=lambda x: x.scoreWeighted, reverse=True)[:n]:
             pathsToWrite.append([combo.docPair,combo.wordPair,combo.path,combo.scoreRaw,combo.pathLength,combo.level1,combo.level2,combo.weight,combo.scoreWeighted])
+    return results, pathsToWrite
 
+def process_sim(df,n,simType,norm):
+    
+    # extract the raw data
+    documents, documentsExpanded, docNames = extract_raw_data(df,simType)
+
+    # process each possible word pair
+    combos = [x for x in it.combinations([i for i in xrange(len(documents))],2)]
+    results, pathsToWrite = process_combos(combos,documents,documentsExpanded,docNames,norm,n)
+
+    # write sim results to df
     simsColNames = ['doc1','doc2','docPair','sim','words1','words2']
     for i in xrange(3,len(simsColNames)):
         simsColNames[i] = simType + "_" + simsColNames[i]
-    pathsColNames = ['docPair','wordPair','path','rawSim','pathLength','level1','level2','weight','weightedSim']
-    # for i in xrange(2,len(pathsColNames)):
-    #     pathsColNames[i] = simType + "_" + pathsColNames[i]
     simsDF = pd.DataFrame(results,columns=simsColNames)
+    
+    # write path results to df
+    pathsColNames = ['docPair','wordPair','path','rawSim','pathLength','level1','level2','weight','weightedSim']
     pathsDF = pd.DataFrame(pathsToWrite,columns=pathsColNames)
     pathsDF['type'] = simType
     pathsDF['pathID'] = pathsDF.docPair + "_" + pathsDF.wordPair
 
-    # masterDF = simsDF.copy(deep=True)
-    # masterDF['pathData'] = {}
-    # for docPairName, docPairData in pathsDF.groupby(['docPair']):
-    #     masterDF[masterDF['docPair'] == docPairName]['pathData'] = docPairData.ix[:,1:].to_dict()
-
     return simsDF, pathsDF, #masterDF
-    # with open(settings[1],'w') as csvfile:
-    #     csvwriter = csv.writer(csvfile)
-    #     csvwriter.writerow(['doc1','doc2','docPair','sim','words1','words2'])
-    #     for result in results:
-    #         csvwriter.writerow(result)
 
-    # with open(settings[2],'w') as csvfile:
-    #     csvwriter = csv.writer(csvfile)
-    #     csvwriter.writerow(['docPair','wordPair','path','rawSim','pathLength','weightedSim'])
-    #     for path in pathsToWrite:
-    #         csvwriter.writerow(path)
+def get_problem_matches(df,noiseThreshold=0.0,signalThreshold=1.0):
+    return df[(df['surface_sim_z'] < noiseThreshold) 
+                & (df['mechanism_sim_z'] < noiseThreshold)
+                & (df['problem_sim_z'] > signalThreshold)].docPair
 
-def get_matches(df,surfaceThreshold=0.0,structureThreshold=1.0):
-    return df[(df['surface_sim_z'] < surfaceThreshold) & (df['structure_sim_z'] > structureThreshold)].docPair
+def get_mechanism_matches(df,noiseThreshold=0.0,signalThreshold=1.0):
+    return df[(df['surface_sim_z'] < noiseThreshold) 
+                & (df['problem_sim_z'] < noiseThreshold)
+                & (df['mechanism_sim_z'] > signalThreshold)].docPair
 
 def get_fulltext(textdir):
     fullText = {}
@@ -263,11 +248,11 @@ def get_fulltext(textdir):
 
 def main(n,norm):
     
-    runtype = "enhanced_WTpr_noWordLevelWT_topSum_%i" %n
+    runtype = "enhanced_WTpr_noWordLevelWT_noChamp_split3_topSum_%i" %n
     # settings
     # structureSrcDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_structure_enhanced/"
     # surfaceSrcDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_surface_enhanced/"
-    keyWordsData = pd.read_csv("/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_keywords_enhanced.csv")
+    keyWordsData = pd.read_csv("/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_keywords_enhanced_split3.csv")
     fullTextDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/small_raw/"
     resultsDir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/results/%s/" %runtype
     if not os.path.exists(resultsDir):
@@ -275,17 +260,26 @@ def main(n,norm):
     simOutFileName = "%ssmallResults_%s.csv" %(resultsDir,runtype)
     pathOutFileName = "%ssmallResults_%s_PATH.csv" %(resultsDir,runtype)
     jsonFileName = "%srawResults.json" %resultsDir
-    matchFileName = "%smatches.json" %resultsDir
+    problemMatchFileName = "%sproblem_matches.json" %resultsDir
+    mechanismMatchFileName = "%smechanism_matches.json" %resultsDir
 
     # get data
-    structureSimDF, structurePathsDF = process_sim(keyWordsData,n,"structure",norm,wordType="structure")
-    surfaceSimDF, surfacePathsDF = process_sim(keyWordsData,n,"surface",norm,wordType="surface")
+    problemSimDF, problemPathsDF = process_sim(keyWordsData,n,"problem",norm)
+    mechanismSimDF, mechanismPathsDF = process_sim(keyWordsData,n,"mechanism",norm)
+    surfaceSimDF, surfacePathsDF = process_sim(keyWordsData,n,"surface",norm)
     
     # merge the data
-    masterSimsDF = pd.DataFrame.merge(structureSimDF,surfaceSimDF,how="left")
-    masterPathsDF = pd.DataFrame.merge(structurePathsDF,surfacePathsDF,how="outer")
+    masterSimsDF = pd.DataFrame.merge(problemSimDF,mechanismSimDF,how="outer")
+    masterSimsDF = pd.DataFrame.merge(masterSimsDF,surfaceSimDF,how="outer")
+    # masterSimsDF.to_csv("testSim.csv")
+
+    masterPathsDF = pd.DataFrame.merge(problemPathsDF,mechanismPathsDF,how="outer")
+    masterPathsDF = pd.DataFrame.merge(masterPathsDF,surfacePathsDF,how="outer")
+    # masterPathsDF.to_csv("testPaths.csv")
+    
     # masterMasterDF = pd.DataFrame.merge(structureMaster,surfaceMaster,how="left")
-    masterSimsDF['structure_sim_z'] = (masterSimsDF.structure_sim-np.mean(masterSimsDF.structure_sim))/np.std(masterSimsDF.structure_sim)
+    masterSimsDF['problem_sim_z'] = (masterSimsDF.problem_sim-np.mean(masterSimsDF.problem_sim))/np.std(masterSimsDF.problem_sim)
+    masterSimsDF['mechanism_sim_z'] = (masterSimsDF.mechanism_sim-np.mean(masterSimsDF.mechanism_sim))/np.std(masterSimsDF.mechanism_sim)
     masterSimsDF['surface_sim_z'] = (masterSimsDF.surface_sim-np.mean(masterSimsDF.surface_sim))/np.std(masterSimsDF.surface_sim)
 
     # print out
@@ -299,7 +293,8 @@ def main(n,norm):
     masterMasterDict = json.loads(open(jsonFileName).read())
     # print masterSimsDF.docPair
     for docPairName, docPairData in masterPathsDF.groupby(['docPair']):
-        structurePaths = []
+        problemPaths = []
+        mechanismPaths = []
         surfacePaths = []
         for index, row in docPairData.iterrows():
             # print row
@@ -310,11 +305,14 @@ def main(n,norm):
                        "pathLength":row['pathLength'],
                        "weight":row['weight'],
                        "weightedSim":row['weightedSim']}
-            if row['type'] == "structure":
-                structurePaths.append(rowDict)
+            if row['type'] == "problem":
+                problemPaths.append(rowDict)
+            elif row['type'] == "mechanism":
+                mechanismPaths.append(rowDict)
             else:
                 surfacePaths.append(rowDict)
-        masterMasterDict[docPairName]['structurePathData'] = structurePaths
+        masterMasterDict[docPairName]['problemPathData'] = problemPaths
+        masterMasterDict[docPairName]['mechanismPathData'] = mechanismPaths
         masterMasterDict[docPairName]['surfacePathData'] = surfacePaths
 
     # merge in full text
@@ -326,12 +324,19 @@ def main(n,norm):
 
     open(jsonFileName,'w').write(json.dumps(masterMasterDict,indent=4))
 
-    # screen and print out matches
-    matches = get_matches(masterSimsDF)
-    matchesDict = {}
-    for match in matches:
-        matchesDict[match] = masterMasterDict[match]
-    open(matchFileName,'w').write(json.dumps(matchesDict,indent=4))
+    # screen and print out problem matches
+    problemMatches = get_problem_matches(masterSimsDF)
+    problemMatchesDict = {}
+    for match in problemMatches:
+        problemMatchesDict[match] = masterMasterDict[match]
+    open(problemMatchFileName,'w').write(json.dumps(problemMatchesDict,indent=4))
+
+    # screen and print out mechanism matches
+    mechanismMatches = get_mechanism_matches(masterSimsDF)
+    mechanismMatchesDict = {}
+    for match in mechanismMatches:
+        mechanismMatchesDict[match] = masterMasterDict[match]
+    open(mechanismMatchFileName,'w').write(json.dumps(mechanismMatchesDict,indent=4))
 
     srcdir = "/Users/jchan/Dropbox/Research/PostDoc/CrowdSchemas/WOZ/results/src/"
     for f in os.listdir(srcdir):
@@ -339,16 +344,6 @@ def main(n,norm):
         if ".DS_Store" not in f and os.path.isfile(srcf):
             destf = resultsDir + f
             shutil.copy2(srcf,destf)
-
-    # pathsColNames = ['docPair','wordPair','path','rawSim','pathLength','level1','level2','weight','weightedSim']
-    
-    # masterMasterDF.to_json(jsonFileName)
-    # surfacePathsDF.to_csv("surfaceSimDF.csv")
-    # writer = ExcelWriter(outFileName)
-    # masterSimsDF.to_excel(writer,sheet_name="simData",index=False)
-    # masterPathsDF.to_excel(writer,sheet_name="pathData")
-    # writer.save()
-
 
 if __name__ == '__main__':
     main(n=5,norm=False)
