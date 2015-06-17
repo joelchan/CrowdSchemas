@@ -11,7 +11,7 @@ Template.sentence.helpers({
 });
 
 Template.word.helpers({
-    isProblem: function() {
+    isPurpose: function() {
         // stub code for now, return true if the user
         // has marked this word as a problem word
         return true;
@@ -32,9 +32,9 @@ Template.word.events({
         console.log(word);
         var wordID = "#" + word.id;
         console.log("clicked on " + wordID);
-        if (selection.classList.contains("prob")) {
-            console.log("It's a problem!");
-            $(wordID).addClass('highlight-problem');
+        if (selection.classList.contains("purp")) {
+            console.log("It's a purpose!");
+            $(wordID).addClass('highlight-purp');
             $(wordID).removeClass('highlight-mechanism');
         } else if (selection.classList.contains("mech")) {
             console.log("It's a mechanism!");

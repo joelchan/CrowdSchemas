@@ -1,18 +1,33 @@
 <template name="annotationPage">
     <div class="container">
         <div class="row instructions">
-            <p>Welcome! Below is a product idea description. We want to know what words in the document indicate the main <strong>problem</strong> the product is trying to solve, as well as the <strong>mechanism(s)</strong> it uses to solve that problem.</p>
-            <p>Please help us find these words by clicking on words to mark them as <span class="problem-key">problem keywords</span> or <span class="mech-key">mechanism keywords</span></p>
+            <p>Welcome! Below is a product idea description. We want to know what unique problem the product solves (its <span class="highlight-purp">purpose</span>), as well as the <span class="highlight-mechanism">mechanism(s)</span> it uses to solve that problem.</p>
+            <p>Please help us learn these things about the product by doing 2 things:</p>
+            <ol>
+                <li>
+                    Summarize the purpose and mechanism(s) of the product in the textboxes below.
+                </li>
+                <li>
+                    Click on the words to mark them as <span class="highlight-purp">purpose</span> or <span class="highlight-mechanism">mechanism</span> keywords.
+                </li>
+            </ol>
         </div>
         <div class="divider">
+        </div>
+        <div class="row summary">
+            <p>The <span class="highlight-purp">purpose</span> of this product is:</p>
+            <p>The <span class="highlight-mechanism">mechanism(s)</span> the product uses to achieve its purpose is/are:</p>
         </div>
         <div class="row doc">
             {{#each sentences}}
                 {{> sentence}}
             {{/each}}
         </div>
-        <div class="row">
+        <div class="row footer">
+            <!-- take the user to confirmation page -->
             <button class="finished">I'm finished!</button>
+            <!-- take the user to confirmation page -->
+            <button class="finished">Get me another!</button>
         </div>
     </div>
 </template>
@@ -32,7 +47,7 @@
         {{content}} 
       </button>
       <ul class="dropdown-menu">
-        <li class="key-option prob"><a href="#">Problem</a></li>
+        <li class="key-option purp"><a href="#">Purpose</a></li>
         <li class="key-option mech"><a href="#">Mechanism</a></li>
         <li class="key-option"><a href="#">Neither</a></li>
       </ul>

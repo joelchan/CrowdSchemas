@@ -4,7 +4,12 @@
     margin-bottom:15px;
 }
 
-.highlight-problem {
+.doc {
+    background-color: white;
+    padding:15px;
+}
+
+.highlight-purp {
     background-color: #F9CCCC;
 }
 
