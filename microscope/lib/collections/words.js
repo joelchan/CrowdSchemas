@@ -16,3 +16,18 @@ Word = function (content, sequence, sentence) {
     this.highlightsProblem = [];
     this.highlightsMechanism = [];
 }
+
+WordManager = (function() {
+    return {
+        markWord: function(wordID, userID, type) {
+            /******************************************************************
+             * Mark the word with appropriate annotation for that user
+             * @params
+             *    wordID - the id of the word being annotated
+             *    userID - the user making the annotation
+             *    type (str) - problem, mechanism, or neither
+             *****************************************************************/
+            return true;
+        }
+    }
+}());

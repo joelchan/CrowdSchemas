@@ -5,5 +5,21 @@
 }
 
 .highlight-problem {
-    background-color: red;
+    background-color: #F9CCCC;
+}
+
+.highlight-mechanism {
+    background-color: rgb(194, 240, 194);
+}
+
+.token {
+    border: none;
+    /*background-color: rgb(238, 238, 238);*/
+    padding:0px 1px 0px 1px;
+    margin:0px;
+}
+
+.token-container {
+    border: none;
+    color: none;
 }

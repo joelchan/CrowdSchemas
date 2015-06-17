@@ -11,3 +11,15 @@ Document = function(fileName) {
     // and made at least one annotation
     this.annotatedBy = [];
 }
+
+DocumentManager = (function() {
+    return {
+        sampleDocument: function(userID) {
+            /******************************************************************
+             * Sample a document for a given user to annotate
+             * @params
+             *    userID - the id of the user we want to serve
+             *****************************************************************/
+        }
+    }
+}());

@@ -7,20 +7,14 @@
         <div class="divider">
         </div>
         <div class="row doc">
-            {{#each thisDoc}}
-                {{> document}}
+            {{#each sentences}}
+                {{> sentence}}
             {{/each}}
         </div>
         <div class="row">
             <button class="finished">I'm finished!</button>
         </div>
     </div>
-</template>
-
-<template name="document">
-    {{#each sentences}}
-        {{> sentence}}
-    {{/each}}
 </template>
 
 <template name="sentence">
@@ -32,5 +26,15 @@
 </template>
 
 <template name="word">
-    <span class="token" id="word-{{_id}}">{{content}}</span>
+    <!-- Single button -->
+    <div class="btn-group token-container">
+      <button type="button" class="dropdown-toggle token" id="word-{{_id}}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        {{content}} 
+      </button>
+      <ul class="dropdown-menu">
+        <li class="key-option prob"><a href="#">Problem</a></li>
+        <li class="key-option mech"><a href="#">Mechanism</a></li>
+        <li class="key-option"><a href="#">Neither</a></li>
+      </ul>
+    </div>
 </template>
