@@ -1,0 +1,36 @@
+<template name="annotationPage">
+    <div class="container">
+        <div class="row instructions">
+            <p>Welcome! Below is a product idea description. We want to know what words in the document indicate the main <strong>problem</strong> the product is trying to solve, as well as the <strong>mechanism(s)</strong> it uses to solve that problem.</p>
+            <p>Please help us find these words by clicking on words to mark them as <span class="problem-key">problem keywords</span> or <span class="mech-key">mechanism keywords</span></p>
+        </div>
+        <div class="divider">
+        </div>
+        <div class="row doc">
+            {{#each thisDoc}}
+                {{> document}}
+            {{/each}}
+        </div>
+        <div class="row">
+            <button class="finished">I'm finished!</button>
+        </div>
+    </div>
+</template>
+
+<template name="document">
+    {{#each sentences}}
+        {{> sentence}}
+    {{/each}}
+</template>
+
+<template name="sentence">
+    <p>
+        {{#each words}}
+            {{> word}}
+        {{/each}}
+    </p>
+</template>
+
+<template name="word">
+    <span class="token" id="word-{{_id}}">{{content}}</span>
+</template>

@@ -1,0 +1,9 @@
+.divider {
+    border:dashed grey 1px;
+    margin-top: 15px;
+    margin-bottom:15px;
+}
+
+.highlight-problem {
+    background-color: red;
+}
