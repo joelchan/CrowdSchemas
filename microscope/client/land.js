@@ -8,9 +8,12 @@ Logger.setLevel('Client:land', 'trace');
 Template.land.events({
     'click .continue' : function() {
         logger.debug("User clicked continue");
-        // add logic here to make sure they are logged in
-        var doc = DocumentManager.sampleDocument(); 
-        logger.trace("Sending user to annotate document " + JSON.stringify(doc));
-        Router.go("Annotate", {docID: doc._id});
+
+        if (Meteor.user()) {
+            logger.trace("Sending user to tutorial");
+            Router.go("Tutorial");    
+        } else {
+            alert("Please log in or create an account before continuing");
+        }   
     }
 });

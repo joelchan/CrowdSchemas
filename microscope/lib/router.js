@@ -37,18 +37,13 @@ Router.map(function() {
 
     this.route('Tutorial', {
         name: 'Tutorial',
-        path: '/tutorial/:docID',
+        path: '/tutorial/',
         template: 'tutorial',
         subscriptions: function() {
-            this.subscribe("documents", {_id: this.params.docID});
-            this.subscribe("sentences", {docID: this.params.docID});
-            this.subscribe("words", {docID: this.params.docID});
+            this.subscribe("documents");
         },
         onBeforeAction: function() { 
             if(this.ready()) {
-                // var doc = DocumentManager.sampleDocument();
-                var doc = Documents.findOne({_id: this.params.docID});
-                Session.set("currentDoc", doc);
                 $('.navbar-brand').text("Annotator: Welcome >> Tutorial");
                 this.next();
             }

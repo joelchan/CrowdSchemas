@@ -14,16 +14,16 @@
 
 <template name="annotateTask">
     <div class="row instructions">
-        <p>Welcome! Below is a product idea description. We want to know what unique problem the product solves (its <span class="key-purpose">purpose</span>), as well as the <span class="key-mechanism">mechanism(s)</span> it uses to solve that problem.</p>
-        <p>Please help us learn these things about the product by doing 2 things:</p>
+        <p>Please read the product description below and help us:</p>
         <ol>
             <li>
                 Summarize the <span class="key-purpose">purpose</span> and <span class="key-mechanism">mechanism(s)</span> of the product in the textboxes below.
             </li>
             <li>
-                Tell us which words in the description best signal the <span class="key-purpose">purpose</span> or <span class="key-mechanism">mechanism(s)</span> of the product. Mark a word by clicking on it and selecting the appropriate keyword type (e.g., purpose or mechanism). You may mark as many words as you think will help.
+                Annotate the description to mark the individual words that best signal the <span class="key-purpose">purpose</span> and/or <span class="key-mechanism">mechanism(s)</span> of the product. Mark a word by clicking on it and selecting the appropriate keyword type (e.g., purpose or mechanism). You may mark as many words as you think will help.
             </li>
         </ol>
+        <p>Click on the "I'm finished" button below when you are done.</p>
     </div>
     <div class="divider">
     </div>
@@ -41,9 +41,9 @@
             <textarea class="form-control" id="summ-mech" rows="3" placeholder="This product achieves its unique purpose by..."></textarea>
             <div class="controls">
                 <!-- take the user to confirmation page -->
-                <button class="finished btn btn-lg btn-success">I'm finished!</button>
+                <button class="finished btn btn-success">I'm finished!</button>
                 <!-- take the user to confirmation page -->
-                <button class="another btn btn-lg btn-default">Get me another!</button>
+                <!-- <button class="another btn btn-default">Get me another!</button> -->
             </div>
         </div>
     </div>
