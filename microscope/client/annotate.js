@@ -31,7 +31,46 @@ Template.annotateTask.events({
         Session.set("currentDoc", doc);
     },
     'click .finished': function() {
-        Router.go("Finish");
+        // grab and check summary data
+        var sumPurpose = $('#summ-purp').val();
+        var sumMech = $('#summ-mech').val();
+        logger.trace("Purpose summary: " + sumPurpose);
+        logger.trace("Mechanism summary: " + sumMech);
+        if (sumPurpose === "" || sumMech === "") {
+            var hasSummary = false;    
+        } else {
+            var hasSummary = true;    
+        }
+
+        // check if annotated
+        if (DocumentManager.isAnnotatedBy(Session.get("currentDoc"), Meteor.user())) {
+            var hasAnnotations = true;
+        } else {
+            var hasAnnotations = false;
+        }
+
+        // only continue if we have all the data!
+        if (!hasSummary && !hasAnnotations) {
+            alert("Please summarize and annotate the document!");
+        } else if (!hasSummary && hasAnnotations) {
+            alert("Please summarize the document!");
+        } else if (hasSummary && !hasAnnotations) {
+            alert("Please annotate the document!");
+        } else {
+            // grab the summary data and push to finish
+            DocumentManager.addSummary(Session.get('currentDoc'),
+                                        "Purpose",
+                                        sumPurpose,
+                                        Meteor.user());
+            DocumentManager.addSummary(Session.get('currentDoc'),
+                                        "Mechanism",
+                                        sumMechanism,
+                                        Meteor.user());
+            DocumentManager.isAnnotatedBy(Session.get('currentDoc'),
+                                          Meteor.user());
+            Router.go("Finish");            
+        }
+        // Router.go("Finish");
     }
 })
 

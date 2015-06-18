@@ -23,6 +23,7 @@ if (Documents.find().count() == 0) {
   // SentenceFactory.createSentence(docID, "A third dummy sentence", 3);
   var desiredNum = 20;
   for (i=0; i<desiredNum; i++) {
+    console.log("Creating document " + i);
     DocumentManager.createDocument(quirkyDocs[i]);
   }
 }

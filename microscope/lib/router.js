@@ -56,6 +56,7 @@ Router.map(function() {
         template: 'annotationPage',
         subscriptions: function() {
             this.subscribe("documents", {_id: this.params.docID});
+            this.subscribe("summaries");
             this.subscribe("sentences", {docID: this.params.docID});
             this.subscribe("words", {docID: this.params.docID});
         },

@@ -25,6 +25,7 @@ SentenceFactory = (function() {
               wordIDs.push(wordID);
             }
             Sentences.update({_id: sent1ID},{$push: {wordIDs: wordIDs}});
+            Documents.update({_id: docID}, {$addToSet: {sentences: sent1ID}});
         },
     };
 }());
