@@ -29,6 +29,9 @@ Template.annotateTask.events({
         }
         while (doc._id === Session.get("currentDoc")._id);
         Session.set("currentDoc", doc);
+    },
+    'click .finished': function() {
+        Router.go("Finish");
     }
 })
 
