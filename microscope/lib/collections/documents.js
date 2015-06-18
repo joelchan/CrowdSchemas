@@ -21,13 +21,20 @@ DocumentManager = (function() {
              *    userID - the id of the user we want to serve
              *****************************************************************/
         },
-        createDocument: function(userID) {
+        createDocument: function(docPackage) {
             /******************************************************************
              * Create a document
              * @params
              *    docPackage - a JSON object with fields "title" and 
              *                 "sentences" (an array of sentences)
              *****************************************************************/
+             var doc = new Document(docPackage.title);
+             var docID = Documents.insert(doc);
+             var seq = 1;
+             docPackage.sentences.forEach(function(sentence) {
+                SentenceFactory.createSentence(docID, sentence, seq);
+                seq += 1;
+             });
         },
     }
 }());

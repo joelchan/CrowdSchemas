@@ -13,7 +13,7 @@ Sentence = function(docID, content, psn) {
 
 SentenceFactory = (function() {
     return {
-        createDummy: function(docID, content, psn) {
+        createSentence: function(docID, content, psn) {
             var sent1 = new Sentence(docID, content, psn);
             var sent1ID = Sentences.insert(sent1);
             sent1 = Sentences.findOne({_id: sent1ID});
