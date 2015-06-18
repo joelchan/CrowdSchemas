@@ -18,7 +18,7 @@ Template.annotationPage.helpers({
 
 Template.annotateTask.helpers({
     sentences: function() {
-        return Sentences.find({docID: this._id});
+        return Sentences.find({docID: Session.get("currentDoc")._id});
     }
 });
 

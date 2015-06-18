@@ -24,10 +24,14 @@ Router.map(function() {
         name: 'Annotate',
         path: '/annotate',
         template: 'annotationPage',
-        data: function() { 
+        onBeforeAction: function() { 
             // later we will call the DocumentFactory function
             // to serve up a random document
-            return Documents.findOne();
+            if(this.ready()) {
+                var doc = DocumentManager.sampleDocument();
+                Session.set("currentDoc", doc);
+                this.next();
+            }
         },
     })
 

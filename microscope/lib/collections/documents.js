@@ -14,12 +14,15 @@ Document = function(fileName) {
 
 DocumentManager = (function() {
     return {
-        sampleDocument: function(userID) {
+        sampleDocument: function() {
             /******************************************************************
              * Sample a document for a given user to annotate
              * @params
              *    userID - the id of the user we want to serve
              *****************************************************************/
+             var documents = Documents.find().fetch();
+             var randDoc = getRandomElement(documents);
+             return randDoc;
         },
         createDocument: function(docPackage) {
             /******************************************************************
