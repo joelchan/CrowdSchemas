@@ -8,16 +8,16 @@ isInList = function(member, list, field, compare) {
    *        on which to compare
    *    compare - (optional) comparison function to use
    *****************************************************************/
-  logger.debug("Searching for " + 
-      JSON.stringify(member) + " in list with contents: " + 
-      JSON.stringify(list));
+  // logger.debug("Searching for " + 
+  //     JSON.stringify(member) + " in list with contents: " + 
+  //     JSON.stringify(list));
   var result = false;
   list.forEach(function(obj) {
-    logger.trace("Checking for match with: " + JSON.stringify(obj));
+    // logger.trace("Checking for match with: " + JSON.stringify(obj));
     if (field) {
       if (typeof(obj[field]) === 'string' && 
           typeof(member[field]) === 'string') {
-        logger.trace("comparing 2 strings");
+        // logger.trace("comparing 2 strings");
         if (obj[field].localeCompare(member[field]) === 0) {
           result = true; 
         }
@@ -35,3 +35,14 @@ isInList = function(member, list, field, compare) {
   });
   return result;
 };
+
+trimFromString = function(target, substring) {
+  // logger.debug("triming " + substring + " from target: " + target);
+  var split = target.split(substring);
+  var result = "";
+  split.forEach(function(str) {
+    result += str;
+    // logger.debug("after trim got: " + result);
+  });
+  return result;
+}

@@ -1,3 +1,10 @@
+var logger = new Logger('collections:WordManager');
+
+Logger.setLevel('collections:WordManager', 'trace');
+// Logger.setLevel('collections:WordManager', 'debug');
+// Logger.setLevel('collections:WordManager', 'info');
+// Logger.setLevel('collections:WordManager', 'warn');
+
 Words = new Mongo.Collection('words');
 
 Word = function (content, sequence, sentence) {
@@ -13,7 +20,7 @@ Word = function (content, sequence, sentence) {
 
     // highlights - array of userIDs
     // who have highlighted this word
-    this.highlightsProblem = [];
+    this.highlightsPurpose = [];
     this.highlightsMechanism = [];
 }
 
@@ -27,6 +34,19 @@ WordManager = (function() {
              *    userID - the user making the annotation
              *    type (str) - problem, mechanism, or neither
              *****************************************************************/
+            if (type === "Purpose") {
+                logger.debug("Adding " + userID + " to highlightsPurpose for " + wordID);
+                Words.update({_id: wordID},{$addToSet: {highlightsPurpose: userID}});
+                Words.update({_id: wordID},{$pull: {highlightsMechanism: userID}});
+            } else if (type === "Mechanism") {
+                logger.debug("Adding " + userID + " to highlightsMechanism for " + wordID);
+                Words.update({_id: wordID},{$pull: {highlightsPurpose: userID}});
+                Words.update({_id: wordID},{$addToSet: {highlightsMechanism: userID}});
+            } else {
+                logger.debug("Neither: un-annotating");
+                Words.update({_id: wordID},{$pull: {highlightsPurpose: userID}});
+                Words.update({_id: wordID},{$pull: {highlightsMechanism: userID}});
+            }
             return true;
         }
     }

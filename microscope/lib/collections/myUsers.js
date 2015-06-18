@@ -1,5 +1,5 @@
-MyUsers = new Mongo.Collection('users');
+// MyUsers = new Mongo.Collection('users');
 
-MyUser = function(turkID) {
-    this.turkID = turkID;
-}
+// MyUser = function(turkID) {
+//     this.turkID = turkID;
+// }

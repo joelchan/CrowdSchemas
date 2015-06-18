@@ -20,6 +20,14 @@ DocumentManager = (function() {
              * @params
              *    userID - the id of the user we want to serve
              *****************************************************************/
-        }
+        },
+        createDocument: function(userID) {
+            /******************************************************************
+             * Create a document
+             * @params
+             *    docPackage - a JSON object with fields "title" and 
+             *                 "sentences" (an array of sentences)
+             *****************************************************************/
+        },
     }
 }());

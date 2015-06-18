@@ -1,3 +1,10 @@
+var logger = new Logger('Client:annotate');
+
+Logger.setLevel('Client:annotate', 'trace');
+// Logger.setLevel('Client:annotate', 'debug');
+// Logger.setLevel('Client:annotate', 'info');
+// Logger.setLevel('Client:annotate', 'warn');
+
 Template.annotationPage.helpers({
     sentences: function() {
         return Sentences.find({docID: this._id});
@@ -12,14 +19,38 @@ Template.sentence.helpers({
 
 Template.word.helpers({
     isPurpose: function() {
-        // stub code for now, return true if the user
-        // has marked this word as a problem word
-        return true;
+        var userID = Meteor.user()._id;
+        // logger.debug("Current user is " + userID);
+        // logger.trace("Users who have higlighted this as a purpose keyword: " + 
+            // JSON.stringify(this.highlightsPurpose));
+        if (isInList(userID, this.highlightsPurpose)) {
+            // logger.debug("isPurpose is true");
+            return true;    
+        } else {
+            return false;
+        }
     },
     isMech: function() {
-        // stub code for now, return true if the user
-        // has marked this word as a solution word
-        return true;
+        var userID = Meteor.user()._id;
+        // logger.debug("Current user is " + userID);
+        // logger.trace("Users who have higlighted this as a mechanism keyword: " + 
+            // JSON.stringify(this.highlightsMechanism));
+        if (isInList(userID, this.highlightsMechanism)) {
+            // logger.debug("isMech is true");
+            return true;    
+        } else {
+            return false;
+        }
+    },
+    isNeutral: function() {
+        var userID = Meteor.user()._id;
+        if (!isInList(userID, this.highlightsPurpose) &&
+            !isInList(userID, this.highlightsMechanism)) {
+            // logger.debug("isNeutral is true");
+            return true;    
+        } else {
+            return false;
+        }
     }
 });
 
@@ -27,24 +58,18 @@ Template.word.events({
     'click .key-option': function(event) {
         var selection = event.currentTarget;
         // var keyType = selection.innerText;
-        console.log(selection);
+        // console.log(selection);
         var word = selection.parentNode.previousElementSibling;
-        console.log(word);
-        var wordID = "#" + word.id;
-        console.log("clicked on " + wordID);
+        // console.log(word);
+        var wordID = trimFromString(word.id, "word-");
+        var userID = Meteor.user()._id;
+        logger.trace(userID + " clicked on " + wordID);
         if (selection.classList.contains("purp")) {
-            console.log("It's a purpose!");
-            $(wordID).addClass('highlight-purp');
-            $(wordID).removeClass('highlight-mechanism');
+            WordManager.markWord(wordID, userID, "Purpose");
         } else if (selection.classList.contains("mech")) {
-            console.log("It's a mechanism!");
-            $(wordID).removeClass('highlight-problem');
-            $(wordID).addClass('highlight-mechanism');
+            WordManager.markWord(wordID, userID, "Mechanism");
         } else {
-            console.log("It's neither!");
-            $(wordID).removeClass('highlight-problem');
-            $(wordID).removeClass('highlight-mechanism');
+            WordManager.markWord(wordID, userID, "Neither");
         }
-        
     }
 })
