@@ -6,6 +6,17 @@ Logger.setLevel('Client:annotate', 'trace');
 // Logger.setLevel('Client:annotate', 'warn');
 
 Template.annotationPage.helpers({
+    isLoggedIn: function() {
+        var user = Meteor.user();
+        if (user) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+});
+
+Template.annotateTask.helpers({
     sentences: function() {
         return Sentences.find({docID: this._id});
     }

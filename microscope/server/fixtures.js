@@ -21,7 +21,8 @@ if (Documents.find().count() == 0) {
   // SentenceFactory.createSentence(docID, "This is a sentence", 1);
   // SentenceFactory.createSentence(docID, "Another dummy sentence", 2);
   // SentenceFactory.createSentence(docID, "A third dummy sentence", 3);
-  quirkyDocs.forEach(function(doc){
-    DocumentManager.createDocument(doc);
-  });
+  var desiredNum = 20;
+  for (i=0; i<desiredNum; i++) {
+    DocumentManager.createDocument(quirkyDocs[i]);
+  }
 }
