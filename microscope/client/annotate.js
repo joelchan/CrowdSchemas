@@ -33,10 +33,10 @@ Template.annotateTask.events({
     'click .finished': function() {
         // grab and check summary data
         var sumPurpose = $('#summ-purp').val();
-        var sumMech = $('#summ-mech').val();
+        var sumMechanism = $('#summ-mech').val();
         logger.trace("Purpose summary: " + sumPurpose);
-        logger.trace("Mechanism summary: " + sumMech);
-        if (sumPurpose === "" || sumMech === "") {
+        logger.trace("Mechanism summary: " + sumMechanism);
+        if (sumPurpose === "" || sumMechanism === "") {
             var hasSummary = false;    
         } else {
             var hasSummary = true;    
@@ -51,11 +51,11 @@ Template.annotateTask.events({
 
         // only continue if we have all the data!
         if (!hasSummary && !hasAnnotations) {
-            alert("Please summarize and annotate the document!");
+            alert("Please summarize and annotate the document! Remember: we would like at least one purpose keyword and one mechanism keyword.");
         } else if (!hasSummary && hasAnnotations) {
             alert("Please summarize the document!");
         } else if (hasSummary && !hasAnnotations) {
-            alert("Please annotate the document!");
+            alert("Please annotate the document! Remember: we would like at least one purpose keyword and one mechanism keyword.");
         } else {
             // grab the summary data and push to finish
             DocumentManager.addSummary(Session.get('currentDoc'),
