@@ -21,7 +21,7 @@
                 Summarize the <span class="key-purpose">purpose</span> and <span class="key-mechanism">mechanism(s)</span> of the product in the textboxes below.
             </li>
             <li>
-                Click on the words to mark them as <span class="key-purpose">purpose</span> or <span class="key-mechanism">mechanism</span> keywords.
+                Tell us which words in the description best signal the <span class="key-purpose">purpose</span> or <span class="key-mechanism">mechanism(s)</span> of the product. Mark a word by clicking on it and selecting the appropriate keyword type (e.g., purpose or mechanism). You may mark as many words as you think will help.
             </li>
         </ol>
     </div>
@@ -34,18 +34,18 @@
             {{/each}}
         </div>
         <div class="col-md-6 col-xs-6 summary">
-            <p>What is the <span class="key-purpose">purpose</span> of this product?</p>
-            <textarea class="form-control" id="summ-purp" rows="3" placeholder="This product addresses the problem of..."></textarea>
+            <label>What is the unique <span class="key-purpose">purpose</span> of this product?</label>
+            <textarea class="form-control" id="summ-purp" rows="3" placeholder="This product's unique purpose is to..."></textarea>
             <br/>
-            <p>What is/are the <span class="key-mechanism">mechanism(s)</span> the product uses to achieve its purpose?</p>
-            <textarea class="form-control" id="summ-mech" rows="3" placeholder="This product solves its main problem by..."></textarea>
+            <label>What is/are the <span class="key-mechanism">mechanism(s)</span> the product uses to achieve its purpose?</label>
+            <textarea class="form-control" id="summ-mech" rows="3" placeholder="This product achieves its unique purpose by..."></textarea>
+            <div class="controls">
+                <!-- take the user to confirmation page -->
+                <button class="finished btn btn-lg btn-success">I'm finished!</button>
+                <!-- take the user to confirmation page -->
+                <button class="another btn btn-lg btn-default">Get me another!</button>
+            </div>
         </div>
-    </div>
-    <div class="row footer">
-        <!-- take the user to confirmation page -->
-        <button class="finished">I'm finished!</button>
-        <!-- take the user to confirmation page -->
-        <button class="finished">Get me another!</button>
     </div>
 </template>
 

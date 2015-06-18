@@ -22,6 +22,16 @@ Template.annotateTask.helpers({
     }
 });
 
+Template.annotateTask.events({
+    'click .another': function() {
+        do { 
+            var doc = DocumentManager.sampleDocument();
+        }
+        while (doc._id === Session.get("currentDoc")._id);
+        Session.set("currentDoc", doc);
+    }
+})
+
 Template.sentence.helpers({
     words: function() {
         return Words.find({sentenceID: this._id});

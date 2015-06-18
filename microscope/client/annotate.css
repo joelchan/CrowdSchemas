@@ -7,7 +7,7 @@
 .doc {
     background-color: white;
     padding:15px;
-    margin-top:15px;
+    /*margin-top:1px;*/
 }
 
 .key-purpose {
@@ -32,4 +32,9 @@
 .token-container {
     border: none;
     color: none;
+}
+
+.controls {
+    margin-top:15px;
+    
 }
