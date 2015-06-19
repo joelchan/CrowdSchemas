@@ -1,3 +1,10 @@
+var logger = new Logger('Server:fixtures');
+
+Logger.setLevel('Server:fixtures', 'trace');
+// Logger.setLevel('Server:fixtures', 'debug');
+// Logger.setLevel('Server:fixtures', 'info');
+// Logger.setLevel('Server:fixtures', 'warn');
+
 if (Posts.find().count() === 0) {
   Posts.insert({
     title: 'Introducing Telescope',
@@ -21,9 +28,18 @@ if (Documents.find().count() == 0) {
   // SentenceFactory.createSentence(docID, "This is a sentence", 1);
   // SentenceFactory.createSentence(docID, "Another dummy sentence", 2);
   // SentenceFactory.createSentence(docID, "A third dummy sentence", 3);
+  // var desiredNum = 20;
+  // console.log(desiredNum);
+  // for (i=0; i<20; i++) {
+  //   console.log("Creating document " + i);
+  //   DocumentManager.createDocument(quirkyDocs[i]);
+  // }
+  
   var desiredNum = 20;
-  for (i=0; i<desiredNum; i++) {
-    console.log("Creating document " + i);
-    DocumentManager.createDocument(quirkyDocs[i]);
-  }
+  // var desiredNum = quirkyDocs.length;
+  logger.debug("Documents empty, inserting first " + desiredNum + " docs from Quirky data");
+  var quirkyDocsSubset = quirkyDocs.slice(0,desiredNum);
+  quirkyDocsSubset.forEach(function(doc) {
+    DocumentManager.createDocument(doc);
+  });
 }

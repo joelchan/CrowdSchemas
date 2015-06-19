@@ -18,6 +18,7 @@ Template.annotationPage.helpers({
 
 Template.annotateTask.helpers({
     sentences: function() {
+        logger.debug("Getting sentences...");
         return Sentences.find({docID: Session.get("currentDoc")._id},
                                 {$sort: {psn: 1}});
     }
@@ -77,6 +78,7 @@ Template.annotateTask.events({
 
 Template.sentence.helpers({
     words: function() {
+        logger.debug("Getting words...");
         return Words.find({sentenceID: this._id}, 
                             {$sort: { sequence : 1 }});
     }

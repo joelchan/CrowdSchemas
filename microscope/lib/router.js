@@ -60,11 +60,13 @@ Router.map(function() {
             this.subscribe("sentences", {docID: this.params.docID});
             this.subscribe("words", {docID: this.params.docID});
         },
+        waitOn: function() {
+            var doc = Documents.findOne({_id: this.params.docID});
+            Session.set("currentDoc", doc);
+        },
         onBeforeAction: function() { 
             if(this.ready()) {
                 // var doc = DocumentManager.sampleDocument();
-                var doc = Documents.findOne({_id: this.params.docID});
-                Session.set("currentDoc", doc);
                 $('.navbar-brand').text("Annotator: Welcome >> Tutorial >> Main Task");
                 this.next();
             }
