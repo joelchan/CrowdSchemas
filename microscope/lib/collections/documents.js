@@ -88,7 +88,8 @@ DocumentManager = (function() {
             }
         },
         markAnnotatedBy: function(doc, user) {
-
+            Documents.update({_id: doc._id},
+                            {$addToSet: {annotatedBy: user._id}});
         }
     }
 }());

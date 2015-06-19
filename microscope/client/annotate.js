@@ -68,7 +68,7 @@ Template.annotateTask.events({
                                         "Mechanism",
                                         sumMechanism,
                                         Meteor.user());
-            DocumentManager.isAnnotatedBy(Session.get('currentDoc'),
+            DocumentManager.markAnnotatedBy(Session.get('currentDoc'),
                                           Meteor.user());
             Router.go("Finish");            
         }
