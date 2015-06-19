@@ -13,7 +13,7 @@ Template.land.events({
             logger.trace("Sending user to tutorial");
             Router.go("Tutorial");    
         } else {
-            alert("Please log in or create an account before continuing");
+            alert("Please sign in or create an account (in the menu in the top right-hand corner of the page) before continuing");
         }   
     }
 });
