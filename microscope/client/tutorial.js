@@ -50,7 +50,7 @@ Template.tutorial.events({
         logger.debug("User clicked continue");
 
         if (Meteor.user()) {
-            var doc = DocumentManager.sampleDocument(); 
+            var doc = DocumentManager.sampleDocument(Meteor.user()._id); 
             logger.trace("Sending user to annotation task with document " + JSON.stringify(doc));
             Router.go("Annotate", {docID: doc._id});    
         } else {

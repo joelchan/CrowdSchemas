@@ -29,15 +29,23 @@ Summary = function(doc, sumType, content, user) {
 
 DocumentManager = (function() {
     return {
-        sampleDocument: function() {
+        sampleDocument: function(userID) {
             /******************************************************************
              * Sample a document for a given user to annotate
+             * and make sure that the document hasn't been annotated
+             * by that person already
              * @params
              *    userID - the id of the user we want to serve
              *****************************************************************/
-             var documents = Documents.find().fetch();
-             var randDoc = getRandomElement(documents);
-             return randDoc;
+            var documents = Documents.find().fetch();
+            var hasAnnotated = true;
+            do { 
+                var randDoc = getRandomElement(documents);
+                if (!isInList(userID, randDoc.annotatedBy)) {
+                    hasAnnotated = false;
+                }
+            } while (hasAnnotated);
+            return randDoc;
         },
         createDocument: function(docPackage) {
             /******************************************************************
